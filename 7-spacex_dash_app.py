@@ -5,10 +5,26 @@ import dash_html_components as html
 import dash_core_components as dcc
 from dash.dependencies import Input, Output
 import plotly.express as px
-
+import os
 
 # Read the airline data into pandas dataframe
-spacex_df = pd.read_csv("./10. Applied Data Science Capstone/Applied_Data_Science_Capstone/spacex_launch_dash.csv")
+
+def find_path_to_file(file_name):
+    pythonfile = 'spacex_launch_dash.csv'
+    # if the file is present in current directory,
+    # then no need to specify the whole location
+    for root, dirs, files in os.walk(r'/home'): # change this if using windows or mac
+        for name in files:
+        
+            # As we need to get the provided python file, 
+            # comparing here like this
+            if name == pythonfile: 
+                return os.path.abspath(os.path.join(root, name))
+    return None
+
+
+local_path = find_path_to_file('spacex_launch_dash.csv')
+spacex_df = pd.read_csv(local_path)
 # spacex_df = pd.read_csv("spacex_launch_dash.csv")
 max_payload = spacex_df['Payload Mass (kg)'].max()
 min_payload = spacex_df['Payload Mass (kg)'].min()
@@ -82,32 +98,32 @@ app.layout = html.Div(children=[html.H1('SpaceX Launch Records Dashboard',
     [Input(component_id='site-dropdown', component_property='value'),
      Input(component_id='payload-slider', component_property='value')])
 def get_charts(entered_site, slider_range):
+    low, high = slider_range
+    mask = (spacex_df['Payload Mass (kg)'] > low) & (spacex_df['Payload Mass (kg)'] < high)
+    fig_payload = px.scatter(spacex_df[mask], 
+                                x='Payload Mass (kg)', 
+                                y='class', 
+                                color='Booster Version Category',
+                                hover_data=['Payload Mass (kg)'],
+                                )
     if entered_site == 'ALL':
         filtered_df_pie = spacex_df.groupby(spacex_df['Launch Site']).sum().reset_index()
-        fig_pie = px.pie(filtered_df_pie, 
-                         values='class',
-                         names='Launch Site',
-                         title='Total Success Lanches by Site')
-        fig_scatter = px.scatter(spacex_df, 
-                                 x='Payload Mass (kg)', 
-                                 y='class', 
-                                 color="Booster Version Category",
-                                 hover_data=['Payload Mass (kg)'])
+        fig_pie_launches = px.pie(filtered_df_pie,
+                                  values='class',
+                                  names='Launch Site',
+                                  title='Total Success Lanches by Site')
+        fig_payload.update_layout(title=f'Total Payload (All Sites)')
+        
     else:
         filtered_df_pie = spacex_df[['Launch Site','class']].value_counts().reset_index()
-        fig_pie = px.pie(filtered_df_pie[filtered_df_pie['Launch Site'] == entered_site], values='count',
-                         names='class',
-                         title=f'Total Success Lanches for site {entered_site}',
-                         hole=.3)
-        low, high = slider_range
-        mask = (spacex_df['Payload Mass (kg)'] > low) & (spacex_df['Payload Mass (kg)'] < high)
-        fig_scatter = px.scatter(spacex_df[mask], 
-                                 x='Payload Mass (kg)', 
-                                 y='class', 
-                                 color='Booster Version Category',
-                                 hover_data=['Payload Mass (kg)'],
-                                 title=f'Total Success Lanches for site {entered_site}')
-    return [fig_pie, fig_scatter]
+        fig_pie_launches = px.pie(filtered_df_pie[filtered_df_pie['Launch Site'] == entered_site], 
+                                  values='count',
+                                  names='class',
+                                  title=f'Total Success Lanches for site {entered_site}')
+        fig_payload.update_layout(title=f'Total Payload for site {entered_site}')
+        
+
+    return [fig_pie_launches, fig_payload]
 
 # Run the app
 if __name__ == '__main__':
