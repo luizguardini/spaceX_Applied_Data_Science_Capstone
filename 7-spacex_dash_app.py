@@ -6,8 +6,10 @@ import dash_core_components as dcc
 from dash.dependencies import Input, Output
 import plotly.express as px
 
+
 # Read the airline data into pandas dataframe
 spacex_df = pd.read_csv("./10. Applied Data Science Capstone/Applied_Data_Science_Capstone/spacex_launch_dash.csv")
+# spacex_df = pd.read_csv("spacex_launch_dash.csv")
 max_payload = spacex_df['Payload Mass (kg)'].max()
 min_payload = spacex_df['Payload Mass (kg)'].min()
 
@@ -95,7 +97,8 @@ def get_charts(entered_site, slider_range):
         filtered_df_pie = spacex_df[['Launch Site','class']].value_counts().reset_index()
         fig_pie = px.pie(filtered_df_pie[filtered_df_pie['Launch Site'] == entered_site], values='count',
                          names='class',
-                         title=f'Total Success Lanches for site {entered_site}')
+                         title=f'Total Success Lanches for site {entered_site}',
+                         hole=.3)
         low, high = slider_range
         mask = (spacex_df['Payload Mass (kg)'] > low) & (spacex_df['Payload Mass (kg)'] < high)
         fig_scatter = px.scatter(spacex_df[mask], 
